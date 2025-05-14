@@ -71,7 +71,7 @@ export function ProfileForm({ onSubmit, initialData, isSubmitting = false }: Pro
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger className="block w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                    <SelectTrigger className="block w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:ring-primary focus:border-primary flex justify-between items-center">
                       <SelectValue placeholder="Выберите пол" />
                     </SelectTrigger>
                   </FormControl>
@@ -146,7 +146,7 @@ export function ProfileForm({ onSubmit, initialData, isSubmitting = false }: Pro
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger className="block w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                  <SelectTrigger className="block w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:ring-primary focus:border-primary flex justify-between items-center">
                     <SelectValue placeholder="Выберите уровень активности" />
                   </SelectTrigger>
                 </FormControl>
@@ -176,7 +176,7 @@ export function ProfileForm({ onSubmit, initialData, isSubmitting = false }: Pro
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger className="block w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:ring-primary focus:border-primary">
+                  <SelectTrigger className="block w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:ring-primary focus:border-primary flex justify-between items-center">
                     <SelectValue placeholder="Выберите цель" />
                   </SelectTrigger>
                 </FormControl>
