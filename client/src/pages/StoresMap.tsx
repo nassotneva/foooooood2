@@ -7,7 +7,7 @@ import { StoreItem } from "@/components/stores/StoreItem";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Store } from "@/types";
-import { showAlert } from "@/lib/telegram";
+import { showAlert, expandApp, sendDataToTelegram, showMainButton, hapticFeedback } from "@/lib/telegram";
 
 export default function StoresMap() {
   const {
@@ -21,8 +21,39 @@ export default function StoresMap() {
     setSortBy,
   } = useStores();
 
+  // Expand app when component mounts
+  useEffect(() => {
+    expandApp();
+    
+    // Если у нас есть магазины и местоположение, показываем кнопку для отправки данных в Telegram
+    if (stores && stores.length > 0 && location) {
+      showMainButton('Отправить список магазинов в Telegram', () => {
+        // Отправляем данные в Telegram
+        if (sendDataToTelegram(stores, 'stores')) {
+          hapticFeedback.notification('success');
+        }
+      });
+    }
+    
+    return () => {
+      // Скрываем кнопку при размонтировании компонента
+      try {
+        const tgApp = window.Telegram?.WebApp;
+        if (tgApp?.MainButton) {
+          tgApp.MainButton.hide();
+        }
+      } catch (e) {
+        console.warn('Error hiding Telegram button', e);
+      }
+    };
+  }, [stores, location]);
+
   const handleSelectStore = (store: Store) => {
     showAlert(`Выбран магазин: ${store.name}`);
+    
+    // Дополнительно можно отправить данные о конкретном магазине в Telegram
+    sendDataToTelegram(store, 'selectedStore');
+    hapticFeedback.impact('medium');
   };
 
   const handleFilterStores = (value: string) => {

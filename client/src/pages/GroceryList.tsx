@@ -10,6 +10,7 @@ import { CategoryFilter } from "@/components/grocery/CategoryFilter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, Filter } from "lucide-react";
 import { useLocation } from "wouter";
+import { expandApp, sendDataToTelegram, showMainButton, hapticFeedback } from "@/lib/telegram";
 
 export default function GroceryList() {
   const [, setLocation] = useLocation();
@@ -29,6 +30,44 @@ export default function GroceryList() {
     totals,
   } = useGroceryList(profile?.id);
 
+  // Expand app when component mounts and setup Telegram functionality
+  useEffect(() => {
+    expandApp();
+    
+    // Если у нас есть список покупок, показываем кнопку для отправки данных в Telegram
+    if (groceryItems && groceryItems.length > 0) {
+      showMainButton('Отправить список покупок в Telegram', () => {
+        // Преобразуем данные для отправки
+        const groceryData = groceryItems.map((item: any) => ({
+          id: item.id,
+          name: item.foodItem.name,
+          quantity: item.quantity,
+          unit: item.foodItem.unit,
+          price: item.foodItem.pricePerUnit * item.quantity,
+          category: item.foodItem.category,
+          purchased: item.purchased
+        }));
+        
+        // Отправляем данные в Telegram
+        if (sendDataToTelegram(groceryData, 'groceries')) {
+          hapticFeedback.notification('success');
+        }
+      });
+    }
+    
+    return () => {
+      // Скрываем кнопку при размонтировании компонента
+      try {
+        const tgApp = window.Telegram?.WebApp;
+        if (tgApp?.MainButton) {
+          tgApp.MainButton.hide();
+        }
+      } catch (e) {
+        console.warn('Error hiding Telegram button', e);
+      }
+    };
+  }, [groceryItems]);
+  
   // Extract all categories for the filter
   const categories = groceryItems 
     ? [...new Set(groceryItems.map((item: any) => item.foodItem.category))]
