@@ -28,6 +28,7 @@ export interface TelegramWebApp {
   ready(): void;
   expand(): void;
   close(): void;
+  sendData(data: string): void;
   showAlert(message: string): void;
   showConfirm(message: string): Promise<boolean>;
   MainButton: TelegramMainButton;

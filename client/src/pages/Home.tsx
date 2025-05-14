@@ -8,7 +8,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { useMealPlan } from "@/hooks/use-meal-plan";
 import { Profile } from "@/types";
 import { calculateBMR, calculateTDEE, calculateCaloriesForGoal, calculateMacros } from "@/lib/nutrition";
-import { expandApp } from "@/lib/telegram";
+import { expandApp, sendDataToTelegram, showMainButton, hapticFeedback, getUserInfo } from "@/lib/telegram";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -17,10 +17,42 @@ export default function Home() {
   const { generateMealPlan, isGenerating } = useMealPlan(profile?.id);
   const [calculatedNutrition, setCalculatedNutrition] = useState<any>(null);
   
-  // Expand app when component mounts
+  // Expand app when component mounts and setup Telegram main button
   useEffect(() => {
     expandApp();
-  }, []);
+    
+    // Если у нас уже есть профиль, показываем кнопку для отправки данных в Telegram
+    if (profile && !isLoadingProfile) {
+      showMainButton('Отправить профиль в Telegram', () => {
+        const profileData: Profile = {
+          age: profile.age || 30,
+          gender: (profile.gender as any) || 'male',
+          weight: profile.weight || 70,
+          height: profile.height || 175,
+          activity: (profile.activity as any) || 'moderate',
+          goal: (profile.goal as any) || 'maintain',
+          budget: profile.budget || 500
+        };
+        
+        // Отправляем данные в Telegram
+        if (sendDataToTelegram(profileData, 'profile')) {
+          hapticFeedback.notification('success');
+        }
+      });
+    }
+    
+    return () => {
+      // Скрываем кнопку при размонтировании компонента
+      try {
+        const tgApp = window.Telegram?.WebApp;
+        if (tgApp?.MainButton) {
+          tgApp.MainButton.hide();
+        }
+      } catch (e) {
+        console.warn('Error hiding Telegram button', e);
+      }
+    };
+  }, [profile, isLoadingProfile]);
   
   // Show nutrition summary if the profile already exists
   useEffect(() => {
@@ -64,8 +96,18 @@ export default function Home() {
       if (profile?.id) {
         generateMealPlan(data);
       }
+      
+      // Показываем кнопку для отправки данных в Telegram
+      showMainButton('Отправить профиль в Telegram', () => {
+        // Отправляем данные в Telegram
+        if (sendDataToTelegram(data, 'profile')) {
+          hapticFeedback.notification('success');
+        }
+      });
+      
     } catch (error) {
       console.error("Error saving profile:", error);
+      hapticFeedback.notification('error');
     }
   };
   

@@ -8,7 +8,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { showAlert } from "@/lib/telegram";
+import { showAlert, sendDataToTelegram, showMainButton, hapticFeedback, expandApp } from "@/lib/telegram";
 
 export default function MealPlan() {
   const { profile } = useProfile();
@@ -27,13 +27,46 @@ export default function MealPlan() {
 
   const [availableDays, setAvailableDays] = useState<number[]>([1, 2, 3]);
 
-  // Update available days when day count changes
+  // Expand app when component mounts
+  useEffect(() => {
+    expandApp();
+  }, []);
+
+  // Update available days when day count changes and setup Telegram button
   useEffect(() => {
     if (mealPlan) {
       const days = Array.from({ length: mealPlan.days }, (_, i) => i + 1);
       setAvailableDays(days);
+      
+      // Показываем кнопку для отправки плана питания в Telegram
+      showMainButton('Отправить план питания в Telegram', () => {
+        // Создаем объект с данными о плане питания для отправки
+        const mealPlanData = {
+          id: mealPlan.id,
+          days: mealPlan.days,
+          dailyNutrition: mealPlan.dailyNutrition || currentNutrition,
+          dailyMeals: Array.isArray(dailyMeals) ? dailyMeals : [currentDayMeals]
+        };
+        
+        // Отправляем данные в Telegram
+        if (sendDataToTelegram(mealPlanData, 'mealPlan')) {
+          hapticFeedback.notification('success');
+        }
+      });
     }
-  }, [mealPlan]);
+    
+    return () => {
+      // Скрываем кнопку при размонтировании компонента
+      try {
+        const tgApp = window.Telegram?.WebApp;
+        if (tgApp?.MainButton) {
+          tgApp.MainButton.hide();
+        }
+      } catch (e) {
+        console.warn('Error hiding Telegram button', e);
+      }
+    };
+  }, [mealPlan, dailyMeals]);
 
   // Handle day count change
   const handleDayCountChange = (value: string) => {
