@@ -1,3 +1,6 @@
+// Для обеспечения совместимости с ESM проектом
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 const TelegramBot = require('node-telegram-bot-api');
 
 // Используйте переменную окружения для хранения токена бота
