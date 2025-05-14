@@ -97,3 +97,27 @@ export const hapticFeedback = {
 export const expandApp = () => {
   webApp?.expand();
 };
+
+export const sendDataToTelegram = (data: Record<string, any>, type: 'profile' | 'mealPlan' | 'groceries') => {
+  if (!webApp) {
+    console.warn("Telegram WebApp is not available, cannot send data");
+    return false;
+  }
+
+  try {
+    // Формируем объект данных с указанием типа
+    const dataToSend = JSON.stringify({
+      type,
+      data
+    });
+    
+    // Отправляем данные обратно в Telegram
+    webApp.sendData(dataToSend);
+    
+    // Возвращаем успех
+    return true;
+  } catch (error) {
+    console.error("Error sending data to Telegram:", error);
+    return false;
+  }
+};
