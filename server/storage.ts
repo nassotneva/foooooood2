@@ -19,7 +19,7 @@ import {
   type InsertStore
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, isNull, isNotNull, inArray } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, inArray, desc } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -137,7 +137,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(mealPlans)
       .where(eq(mealPlans.userId, userId))
-      .orderBy(mealPlans.createdAt);
+      .orderBy(desc(mealPlans.createdAt));
     return plan;
   }
 

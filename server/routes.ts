@@ -45,12 +45,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/users/telegram/:telegramId', async (req, res) => {
     try {
       const telegramId = req.params.telegramId;
+      console.log("Fetching user by Telegram ID:", telegramId);
+      
       const user = await storage.getUserByTelegramId(telegramId);
+      console.log("User found:", user);
+      
       if (!user) {
+        console.log("User not found for Telegram ID:", telegramId);
         return res.status(404).json({ message: "User not found" });
       }
       res.json(user);
     } catch (error) {
+      console.error("Error fetching user by Telegram ID:", error);
       handleError(res, error);
     }
   });
@@ -235,91 +241,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
   return httpServer;
-}
-
-// Nutrition calculation helper function
-import { Profile } from "@shared/schema";
-
-export async function generateNutritionPlan(profile: Profile, userId: number) {
-  // Calculate BMR (Basal Metabolic Rate) using Harris-Benedict Equation
-  let bmr = 0;
-  
-  if (profile.gender === 'male') {
-    // Men: BMR = 88.362 + (13.397 × weight in kg) + (4.799 × height in cm) - (5.677 × age in years)
-    bmr = 88.362 + (13.397 * profile.weight) + (4.799 * profile.height) - (5.677 * profile.age);
-  } else {
-    // Women: BMR = 447.593 + (9.247 × weight in kg) + (3.098 × height in cm) - (4.330 × age in years)
-    bmr = 447.593 + (9.247 * profile.weight) + (3.098 * profile.height) - (4.330 * profile.age);
-  }
-  
-  // Apply activity factor
-  let tdee = 0; // Total Daily Energy Expenditure
-  switch (profile.activity) {
-    case 'sedentary':
-      tdee = bmr * 1.2;
-      break;
-    case 'light':
-      tdee = bmr * 1.375;
-      break;
-    case 'moderate':
-      tdee = bmr * 1.55;
-      break;
-    case 'high':
-      tdee = bmr * 1.725;
-      break;
-    case 'extreme':
-      tdee = bmr * 1.9;
-      break;
-  }
-  
-  // Adjust for goal
-  let targetCalories = 0;
-  switch (profile.goal) {
-    case 'lose':
-      targetCalories = tdee * 0.8; // 20% deficit
-      break;
-    case 'maintain':
-      targetCalories = tdee;
-      break;
-    case 'gain':
-      targetCalories = tdee * 1.15; // 15% surplus
-      break;
-  }
-  
-  // Calculate macronutrients
-  // Protein: 2g per kg of bodyweight
-  const protein = profile.weight * 2;
-  // Fat: 30% of total calories
-  const fat = (targetCalories * 0.3) / 9;
-  // Carbs: remaining calories
-  const carbs = (targetCalories - (protein * 4) - (fat * 9)) / 4;
-  
-  // Fetch food items to create meals
-  const foodItems = await storage.getAllFoodItems();
-  
-  // Calculate daily budget per meal
-  const dailyBudget = profile.budget || 500; // Default to 500 if not specified
-  
-  // Create a meal plan
-  const mealPlan = await storage.createMealPlan({
-    userId,
-    days: 3, // Default to 3 days
-    totalCalories: Math.round(targetCalories),
-    totalProtein: Math.round(protein),
-    totalFat: Math.round(fat),
-    totalCarbs: Math.round(carbs),
-    totalCost: dailyBudget * 3 // Budget for 3 days
-  });
-  
-  // Return calculated nutrition plan
-  return {
-    mealPlan,
-    dailyNutrition: {
-      calories: Math.round(targetCalories),
-      protein: Math.round(protein),
-      fat: Math.round(fat),
-      carbs: Math.round(carbs),
-      budget: dailyBudget
-    }
-  };
 }

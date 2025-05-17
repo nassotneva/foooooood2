@@ -1,4 +1,5 @@
 // ESM версия бота для запуска через Node.js
+import 'dotenv/config';
 import TelegramBot from 'node-telegram-bot-api';
 
 // Используйте переменную окружения для хранения токена бота

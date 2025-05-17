@@ -1,15 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Profile } from "@/types";
 import { profileSchema } from "@shared/schema";
-import { getUserInfo } from "@/lib/telegram";
+import { initTelegramWebApp, getUserInfo } from "@/lib/telegram";
 import { showAlert } from "@/lib/telegram";
+
+function useTelegramUser() {
+  const [telegramUser, setTelegramUser] = useState<any>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    console.log("[Telegram Debug] window.Telegram:", window.Telegram);
+    console.log("[Telegram Debug] window.Telegram?.WebApp:", window.Telegram?.WebApp);
+    const webApp = initTelegramWebApp();
+    console.log("[Telegram Debug] webApp after init:", webApp);
+    if (webApp && webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+      setTelegramUser(webApp.initDataUnsafe.user);
+      console.log("[Telegram Debug] telegramUser получен:", webApp.initDataUnsafe.user);
+    } else {
+      setTelegramUser(null);
+      console.log("[Telegram Debug] telegramUser НЕ получен");
+    }
+    setIsReady(true);
+  }, []);
+
+  useEffect(() => {
+    console.log("[Telegram Debug] telegramUser state:", telegramUser);
+    console.log("[Telegram Debug] isReady state:", isReady);
+  }, [telegramUser, isReady]);
+
+  return { telegramUser, isReady };
+}
 
 export function useProfile() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
-  const telegramUser = getUserInfo();
+  const { telegramUser, isReady } = useTelegramUser();
   
   // Get user profile from API
   const {
@@ -18,17 +45,16 @@ export function useProfile() {
     error: profileError
   } = useQuery({
     queryKey: ['/api/users/telegram', telegramUser?.id],
-    enabled: !!telegramUser?.id, // Only run query if we have a Telegram user ID
+    enabled: !!telegramUser?.id && isReady, // Only run query if we have a Telegram user ID and инициализация завершена
     queryFn: async () => {
       try {
+        console.log("[Telegram Debug] useQuery: telegramUser:", telegramUser);
         if (!telegramUser?.id) {
           throw new Error("No Telegram user ID available");
         }
-        
         const response = await fetch(`/api/users/telegram/${telegramUser.id}`, {
           credentials: 'include'
         });
-        
         if (!response.ok) {
           // If user doesn't exist yet, return null
           if (response.status === 404) {
@@ -36,7 +62,6 @@ export function useProfile() {
           }
           throw new Error(`Error fetching profile: ${response.statusText}`);
         }
-        
         return await response.json();
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -55,7 +80,6 @@ export function useProfile() {
       try {
         // Validate profile data
         const validatedData = profileSchema.parse(profileData);
-        
         if (profile) {
           // Update existing profile
           const response = await apiRequest('PATCH', `/api/users/${profile.id}`, {
@@ -67,15 +91,13 @@ export function useProfile() {
           if (!telegramUser?.id) {
             throw new Error("No Telegram user ID available");
           }
-          
           // Create a new user with the profile data and telegram ID
           const response = await apiRequest('POST', '/api/users', {
             username: telegramUser.username || `user_${telegramUser.id}`,
-            password: `telegram_${telegramUser.id}`, // Placeholder password
+            password: `telegram_${telegramUser.id}`,
             telegramId: telegramUser.id.toString(),
             ...validatedData
           });
-          
           return response.json();
         }
       } catch (error) {
@@ -88,13 +110,9 @@ export function useProfile() {
       }
     },
     onSuccess: (data) => {
-      // Clear any errors
       setError(null);
-      
-      // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/users/telegram'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-      
       return data;
     },
     onError: (error) => {
@@ -108,7 +126,7 @@ export function useProfile() {
 
   return {
     profile,
-    isLoadingProfile,
+    isLoadingProfile: isLoadingProfile || !isReady,
     saveProfile,
     isSaving,
     error,

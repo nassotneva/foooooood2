@@ -11,6 +11,10 @@ declare global {
 export const webApp = window.Telegram?.WebApp;
 
 export const initTelegramWebApp = () => {
+  console.log("Initializing Telegram WebApp...");
+  console.log("Window.Telegram:", window.Telegram);
+  console.log("WebApp:", window.Telegram?.WebApp);
+  
   if (!webApp) {
     console.warn("Telegram WebApp is not available");
     return null;
@@ -18,6 +22,8 @@ export const initTelegramWebApp = () => {
 
   // Notify the Telegram app that the WebApp is ready
   webApp.ready();
+  console.log("WebApp initialized:", webApp);
+  console.log("User data:", webApp.initDataUnsafe.user);
 
   return webApp;
 };

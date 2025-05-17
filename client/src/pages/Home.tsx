@@ -80,23 +80,28 @@ export default function Home() {
   
   const handleSubmit = async (data: Profile) => {
     try {
-      // Save profile to database
-      await saveProfile(data);
-      
+      // Сохраняем профиль и получаем обновлённые данные
+      const savedProfile = await new Promise<any>((resolve, reject) => {
+        saveProfile(data, {
+          onSuccess: (result: any) => resolve(result),
+          onError: (err: any) => reject(err),
+        });
+      });
+
       // Calculate nutrition data
       const bmr = calculateBMR(data);
       const tdee = calculateTDEE(bmr, data.activity);
       const calories = calculateCaloriesForGoal(tdee, data.goal);
       const nutrition = calculateMacros(calories, data);
-      
+
       setCalculatedNutrition(nutrition);
       setShowSummary(true);
-      
-      // Generate meal plan based on profile
-      if (profile?.id) {
-        generateMealPlan(data);
+
+      // Генерируем план питания, используя id сохранённого профиля
+      if (savedProfile?.id) {
+        generateMealPlan(savedProfile);
       }
-      
+
       // Показываем кнопку для отправки данных в Telegram
       showMainButton('Отправить профиль в Telegram', () => {
         // Отправляем данные в Telegram
@@ -104,7 +109,7 @@ export default function Home() {
           hapticFeedback.notification('success');
         }
       });
-      
+
     } catch (error) {
       console.error("Error saving profile:", error);
       hapticFeedback.notification('error');

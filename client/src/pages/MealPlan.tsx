@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { showAlert, sendDataToTelegram, showMainButton, hapticFeedback, expandApp } from "@/lib/telegram";
+import { MealPlan, DailyMeals } from "@/types";
 
 export default function MealPlan() {
   const { profile } = useProfile();
@@ -23,7 +24,18 @@ export default function MealPlan() {
     isLoadingMealPlan,
     isLoadingDailyMeals,
     isAddingToGroceryList,
-  } = useMealPlan(profile?.id);
+  } = useMealPlan(profile?.id) as {
+    mealPlan: MealPlan | undefined;
+    dailyMeals: DailyMeals[] | undefined;
+    activeDay: number;
+    setActiveDay: (day: number) => void;
+    dayCount: number;
+    setDayCount: (count: number) => void;
+    addToGroceryList: (meal: any) => void;
+    isLoadingMealPlan: boolean;
+    isLoadingDailyMeals: boolean;
+    isAddingToGroceryList: boolean;
+  };
 
   const [availableDays, setAvailableDays] = useState<number[]>([1, 2, 3]);
 
@@ -90,7 +102,7 @@ export default function MealPlan() {
     budget: 500,
   };
 
-  const mockMeals = [
+  const mockMeals: import("@/types").Meal[] = [
     {
       id: 1,
       name: "Овсянка с ягодами и йогуртом",
@@ -131,6 +143,25 @@ export default function MealPlan() {
       recipe: "1. Отварите куриную грудку. 2. Нарежьте овощи. 3. Смешайте все ингредиенты и заправьте маслом.",
     }
   ];
+
+  // Use actual data if available, otherwise use mock data
+  let currentDayMeals: import("@/types").Meal[];
+  if (dailyMeals && Array.isArray(dailyMeals)) {
+    const found = dailyMeals.find((d) => d.day === activeDay);
+    currentDayMeals = found ? found.meals : [];
+  } else {
+    currentDayMeals = mockMeals;
+  }
+  const currentNutrition = mealPlan?.dailyNutrition || mockDailyNutrition;
+
+  const handleAddToGroceryList = (meal: any) => {
+    try {
+      addToGroceryList(meal);
+    } catch (error) {
+      showAlert('Не удалось добавить в список покупок');
+      console.error('Error adding to grocery list:', error);
+    }
+  };
 
   // If loading, show skeleton
   if (isLoadingMealPlan) {
@@ -198,19 +229,6 @@ export default function MealPlan() {
       </div>
     );
   }
-
-  // Use actual data if available, otherwise use mock data
-  const currentDayMeals = dailyMeals || mockMeals;
-  const currentNutrition = mealPlan?.dailyNutrition || mockDailyNutrition;
-
-  const handleAddToGroceryList = (meal: any) => {
-    try {
-      addToGroceryList(meal);
-    } catch (error) {
-      showAlert('Не удалось добавить в список покупок');
-      console.error('Error adding to grocery list:', error);
-    }
-  };
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen pb-20 relative shadow-md">
