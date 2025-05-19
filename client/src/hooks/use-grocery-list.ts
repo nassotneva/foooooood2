@@ -12,12 +12,13 @@ export function useGroceryList(userId?: number) {
 
   // Get grocery items
   const {
-    data: groceryItems,
+    data: groceryItems = [],
     isLoading: isLoadingGroceryItems,
     error: groceryItemsError,
   } = useQuery({
     queryKey: ['/api/grocery-items/user', userId],
     enabled: !!userId,
+    initialData: [],
   });
 
   // Update grocery item (mark as purchased/unpurchased)
@@ -51,7 +52,7 @@ export function useGroceryList(userId?: number) {
     mutate: addGroceryItem,
     isPending: isAdding,
   } = useMutation({
-    mutationFn: async (item: Omit<GroceryItem, 'id'>) => {
+    mutationFn: async (item: { foodItemId: number; quantity: number }) => {
       try {
         if (!userId) {
           throw new Error("User ID is required to add a grocery item");
@@ -59,7 +60,7 @@ export function useGroceryList(userId?: number) {
 
         const response = await apiRequest('POST', '/api/grocery-items', {
           userId,
-          foodItemId: item.id,
+          foodItemId: item.foodItemId,
           quantity: item.quantity,
           purchased: false,
         });

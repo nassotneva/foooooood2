@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { DailyMeals, Meal, MealPlan, Profile } from "@/types";
+import { DailyMeals, Meal, MealPlan, Profile, Ingredient } from "@/types";
 import { generateNutritionPlan } from "@/lib/nutrition";
 import { showAlert } from "@/lib/telegram";
 
@@ -76,17 +76,16 @@ export function useMealPlan(userId?: number) {
           throw new Error("User ID is required to add items to grocery list");
         }
 
-        // For each ingredient in the meal, add to grocery list if not already there
+        const ingredients: Ingredient[] = Array.isArray(meal.ingredients) ? meal.ingredients as Ingredient[] : [];
         const addedItems = await Promise.all(
-          meal.ingredients.map(async (ingredient) => {
+          ingredients.map(async (ing) => {
             const response = await apiRequest('POST', '/api/grocery-items', {
               userId,
-              foodItemId: ingredient.id,
-              quantity: ingredient.quantity,
+              foodItemId: ing.id,
+              quantity: ing.quantity,
               purchased: false,
               mealPlanId: mealPlan?.id
             });
-            
             return response.json();
           })
         );

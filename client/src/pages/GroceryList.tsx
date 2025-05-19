@@ -70,7 +70,7 @@ export default function GroceryList() {
   
   // Extract all categories for the filter
   const categories = groceryItems 
-    ? [...new Set(groceryItems.map((item: any) => item.foodItem.category))]
+    ? Array.from(new Set<string>(groceryItems.map((item: any) => item.foodItem.category)))
     : [];
 
   const handleUpdatePurchased = (id: number, purchased: boolean) => {
@@ -250,7 +250,7 @@ export default function GroceryList() {
               </div>
               
               {/* Items */}
-              {items.map((item: any) => (
+              {(items as any[]).map((item: any) => (
                 <GroceryItem
                   key={item.id}
                   id={item.id}

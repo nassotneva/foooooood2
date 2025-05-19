@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { showAlert, sendDataToTelegram, showMainButton, hapticFeedback, expandApp } from "@/lib/telegram";
-import { MealPlan, DailyMeals } from "@/types";
+import type { MealPlan, DailyMeals } from "@/types";
 
 export default function MealPlan() {
   const { profile } = useProfile();

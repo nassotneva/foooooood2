@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, profileSchema, insertFoodItemSchema, insertMealSchema, insertMealPlanSchema, insertGroceryItemSchema } from "@shared/schema";
 import { ZodError } from "zod";
-import { generateNutritionPlan } from "./nutritionCalculator";
+import { SpoonacularService } from "./services/spoonacularService";
+import { calculateBMR, calculateTDEE, calculateCaloriesForGoal } from '../client/src/lib/nutrition';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Error handler helper
@@ -116,11 +117,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, profile } = req.body;
       const validatedProfile = profileSchema.parse(profile);
-      
-      // Generate nutrition plan
-      const plan = await generateNutritionPlan(validatedProfile, userId);
-      
-      res.status(201).json(plan);
+
+      // 1. Считаем BMR (базовый обмен веществ)
+      let bmr = 0;
+      if (validatedProfile.gender === 'male') {
+        bmr = 88.362 + (13.397 * validatedProfile.weight) + (4.799 * validatedProfile.height) - (5.677 * validatedProfile.age);
+      } else {
+        bmr = 447.593 + (9.247 * validatedProfile.weight) + (3.098 * validatedProfile.height) - (4.330 * validatedProfile.age);
+      }
+
+      // 2. Считаем TDEE (с учетом активности)
+      const activityMultipliers: Record<string, number> = {
+        sedentary: 1.2,
+        light: 1.375,
+        moderate: 1.55,
+        high: 1.725,
+        extreme: 1.9
+      };
+      const tdee = bmr * activityMultipliers[validatedProfile.activity];
+
+      // 3. Корректируем по цели
+      let targetCalories = tdee;
+      if (validatedProfile.goal === 'lose') targetCalories = tdee * 0.8;
+      if (validatedProfile.goal === 'gain') targetCalories = tdee * 1.15;
+
+      if (!targetCalories || isNaN(targetCalories) || targetCalories <= 0) {
+        return res.status(400).json({ message: "Не удалось рассчитать дневную калорийность профиля" });
+      }
+
+      // 4. Диета (если появится поле dietaryRestrictions, добавить обработку)
+      const diet = undefined;
+
+      const mealPlan = await SpoonacularService.generateMealPlan(
+        Math.round(targetCalories),
+        diet
+      );
+
+      // Сохраняем план в базу данных
+      const savedPlan = await storage.createMealPlan({
+        userId,
+        days: 1,
+        totalCalories: mealPlan.day?.nutrients?.calories || 0,
+        totalProtein: mealPlan.day?.nutrients?.protein || 0,
+        totalFat: mealPlan.day?.nutrients?.fat || 0,
+        totalCarbs: mealPlan.day?.nutrients?.carbohydrates || 0,
+        totalCost: mealPlan.day?.meals.reduce((sum, meal) => sum + (meal.pricePerServing || 0), 0) || 0
+      });
+
+      res.status(201).json(savedPlan);
     } catch (error) {
       handleError(res, error);
     }
@@ -232,6 +276,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const stores = await storage.getNearbyStores(lat, lng, radius);
       res.json(stores);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  // Spoonacular API routes
+  app.get('/api/recipes/search', async (req, res) => {
+    try {
+      const { query, page = '1', pageSize = '24' } = req.query;
+      if (!query) {
+        return res.status(400).json({ message: "Query parameter is required" });
+      }
+      const recipes = await SpoonacularService.searchRecipes(
+        query as string,
+        parseInt(page as string),
+        parseInt(pageSize as string)
+      );
+      res.json(recipes);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  app.get('/api/recipes/:id', async (req, res) => {
+    try {
+      const recipeId = parseInt(req.params.id);
+      const recipe = await SpoonacularService.getRecipeById(recipeId);
+      res.json(recipe);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  app.get('/api/recipes/by-ingredients', async (req, res) => {
+    try {
+      const { ingredients } = req.query;
+      if (!ingredients || typeof ingredients !== 'string') {
+        return res.status(400).json({ message: "Ingredients parameter is required" });
+      }
+      const recipes = await SpoonacularService.searchByIngredients(ingredients.split(','));
+      res.json(recipes);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  app.get('/api/products/search', async (req, res) => {
+    try {
+      const { query, page = '1', pageSize = '10' } = req.query;
+      if (!query) {
+        return res.status(400).json({ message: "Query parameter is required" });
+      }
+      const products = await SpoonacularService.searchGroceryProducts(
+        query as string,
+        parseInt(page as string),
+        parseInt(pageSize as string)
+      );
+      res.json(products);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  app.get('/api/products/:id', async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const product = await SpoonacularService.getGroceryProductById(productId);
+      res.json(product);
     } catch (error) {
       handleError(res, error);
     }
