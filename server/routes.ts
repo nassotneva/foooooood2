@@ -349,15 +349,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Spoonacular API routes
   app.get('/api/recipes/search', async (req, res) => {
     try {
-      const { query, page = '1', pageSize = '24' } = req.query;
+      const query = req.query.query as string | undefined;
       if (!query) {
-        return res.status(400).json({ message: "Query parameter is required" });
+        return res.status(400).json({ message: "Missing search query parameter 'query'" });
       }
-      const recipes = await SpoonacularService.searchRecipes(
-        query as string,
-        parseInt(page as string),
-        parseInt(pageSize as string)
-      );
+      const recipes = await SpoonacularService.searchRecipes(query);
       res.json(recipes);
     } catch (error) {
       handleError(res, error);
