@@ -170,4 +170,12 @@ export interface SpoonacularMealPlanDay {
 export interface SpoonacularMealPlanResponse {
   week?: any; // Adjust as needed if you handle weekly plans
   day?: SpoonacularMealPlanDay;
+  // Добавляем поля для ответа с timeFrame: 'day'
+  meals?: SpoonacularRecipe[];
+  nutrients?: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbohydrates: number;
+  };
 } 

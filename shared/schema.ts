@@ -36,6 +36,8 @@ export const foodItems = pgTable("food_items", {
 export const meals = pgTable("meals", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  mealPlanId: integer("meal_plan_id").references(() => mealPlans.id),
+  spoonacularId: integer("spoonacular_id"),
   name: text("name").notNull(),
   type: text("type").notNull(), // breakfast, lunch, dinner, snack
   day: integer("day").notNull(),

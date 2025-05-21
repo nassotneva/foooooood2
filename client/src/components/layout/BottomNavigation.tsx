@@ -1,8 +1,10 @@
 import { useLocation } from "wouter";
 import { Home, ClipboardList, ShoppingCart, MapPin } from "lucide-react";
+import { useProfile } from "@/hooks/use-profile";
 
 export function BottomNavigation() {
   const [location, setLocation] = useLocation();
+  const { profile } = useProfile();
   
   const isActive = (path: string) => location === path;
   
@@ -19,7 +21,14 @@ export function BottomNavigation() {
         
         <button 
           className={`flex flex-col items-center p-2 ${isActive('/meal-plan') ? 'text-primary' : 'text-neutral-600'}`}
-          onClick={() => setLocation('/meal-plan')}
+          onClick={() => {
+            if (profile?.id) {
+              setLocation(`/meal-plan/${profile.id}`);
+            } else {
+              // Опционально: показать уведомление, что профиль не загружен
+              // showAlert('Профиль не загружен. Невозможно перейти к плану питания.');
+            }
+          }}
         >
           <ClipboardList className="h-6 w-6" />
           <span className="text-xs mt-1">План</span>

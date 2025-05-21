@@ -153,6 +153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         diet
       );
 
+      console.log("Spoonacular meal plan response:", mealPlan); // Log 1
+
       // Сохраняем план в базу данных
       const savedPlan = await storage.createMealPlan({
         userId,
@@ -163,6 +165,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalCarbs: mealPlan.day?.nutrients?.carbohydrates || 0,
         totalCost: mealPlan.day?.meals.reduce((sum, meal) => sum + (meal.pricePerServing || 0), 0) || 0
       });
+
+      console.log("Saved meal plan:", savedPlan); // Log after saving main plan
+
+      // Сохраняем детали ежедневных блюд
+      console.log("Attempting to save daily meals."); // Log 2
+      console.log("Checking mealPlan.day and mealPlan.day.meals:", mealPlan.day, mealPlan.day?.meals); // Added Log
+      if (mealPlan.meals) {
+        console.log("Number of meals received from Spoonacular:", mealPlan.meals.length); // Log 3 (исправлено)
+        for (const meal of mealPlan.meals) {
+          console.log("Saving meal:", meal); // Log 4 (before createMeal)
+          try {
+            await storage.createMeal({
+              userId: savedPlan.userId, // Связываем с пользователем
+              mealPlanId: savedPlan.id, // Связываем с планом питания
+              spoonacularId: meal.id, // ID блюда от Spoonacular
+              name: meal.title, // Название блюда (используем 'name' по схеме)
+              type: meal.dishTypes?.[0] || 'main', // Тип блюда, берем первый или 'main'
+              day: 1, // Предполагаем, что план всегда на 1 день
+              calories: meal.nutrition?.nutrients.find((n: any) => n.name === 'Calories')?.amount || 0, // Добавляем калории
+              protein: meal.nutrition?.nutrients.find((n: any) => n.name === 'Protein')?.amount || 0, // Добавляем белки
+              fat: meal.nutrition?.nutrients.find((n: any) => n.name === 'Fat')?.amount || 0, // Добавляем жиры
+              carbs: meal.nutrition?.nutrients.find((n: any) => n.name === 'Carbohydrates')?.amount || 0, // Добавляем углеводы
+              recipe: meal.instructions, // Добавляем инструкции (рецепт)
+              imageUrl: meal.image, // Добавляем изображение
+              // Преобразуем ингредиенты в формат, ожидаемый схемой базы данных
+              ingredients: await Promise.all((Array.isArray(meal.extendedIngredients) ? meal.extendedIngredients : []).map(async (ingredient: { id: number; name: string; nameClean: string; amount: number; unit: string; nutrition?: any }) => {
+                // Ищем продукт по названию
+                const existingFoodItems = await storage.getAllFoodItems(); // TODO: Оптимизировать поиск foodItems
+                let foodItem = existingFoodItems.find(item => 
+                  item.name.toLowerCase() === ingredient.nameClean.toLowerCase()
+                );
+
+                // Если продукт не найден, создаем новый
+                if (!foodItem) {
+                  console.log("Creating new food item for ingredient:", ingredient.nameClean);
+                  try {
+                    const newFoodItem = await storage.createFoodItem({
+                      name: ingredient.nameClean || ingredient.name || 'Unnamed Ingredient',
+                      category: 'other', // Можно улучшить категоризацию
+                      calories: ingredient.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0, // Пытаемся получить нутриенты из ингредиента, если есть
+                      protein: ingredient.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0,
+                      fat: ingredient.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0,
+                      carbs: ingredient.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0,
+                      pricePerUnit: 0, // Нет данных о цене в ответе Spoonacular на этом уровне
+                      unit: ingredient.unit || '',
+                      quantity: ingredient.amount || 0
+                    });
+                    foodItem = newFoodItem;
+                  } catch (foodItemError) {
+                    console.error("Error creating food item:", ingredient.nameClean, foodItemError);
+                    // Возвращаем null или пропускаем ингредиент, если не удалось создать foodItem
+                    return null; 
+                  }
+                }
+
+                // Проверяем, что foodItem был найден или создан
+                if (!foodItem) {
+                  console.warn("Could not find or create food item for ingredient:", ingredient.nameClean);
+                  return null; // Пропускаем ингредиент, если foodItem не найден/создан
+                }
+
+                return {
+                  foodItemId: foodItem.id,
+                  quantity: ingredient.amount || 0,
+                  unit: ingredient.unit || '',
+                };
+              })).then(ingredients => ingredients.filter(ingredient => ingredient !== null)), // Фильтруем null значения
+            });
+            console.log("Meal saved successfully:", meal.id); // Log 5 (success)
+          } catch (saveError) {
+            console.error("Error saving meal:", meal.id, saveError); // Log 6 (error)
+          }
+        }
+      } else {
+        console.log("No meals found in Spoonacular response."); // Log if meals array is empty or missing
+      }
 
       res.status(201).json(savedPlan);
     } catch (error) {

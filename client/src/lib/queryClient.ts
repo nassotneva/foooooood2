@@ -38,7 +38,18 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    
+    // Временное логирование сырого текста ответа
+    const responseText = await res.text();
+    console.log(`Raw response for ${queryKey[0]}:`, responseText);
+    
+    // Пробуем распарсить текст как JSON
+    try {
+      return JSON.parse(responseText);
+    } catch (e) {
+      console.error(`Failed to parse JSON for ${queryKey[0]}:`, e);
+      throw new Error(`Invalid JSON response from ${queryKey[0]}`);
+    }
   };
 
 export const queryClient = new QueryClient({

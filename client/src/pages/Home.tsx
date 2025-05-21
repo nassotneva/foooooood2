@@ -8,13 +8,13 @@ import { useProfile } from "@/hooks/use-profile";
 import { useMealPlan } from "@/hooks/use-meal-plan";
 import { Profile } from "@/types";
 import { calculateBMR, calculateTDEE, calculateCaloriesForGoal, calculateMacros } from "@/lib/nutrition";
-import { expandApp, sendDataToTelegram, showMainButton, hapticFeedback, getUserInfo } from "@/lib/telegram";
+import { expandApp, sendDataToTelegram, showMainButton, hapticFeedback, getUserInfo, showAlert } from "@/lib/telegram";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { profile, saveProfile, isLoadingProfile, isSaving, telegramUser } = useProfile();
   const [showSummary, setShowSummary] = useState(false);
-  const { generateMealPlan, isGenerating } = useMealPlan(profile?.id);
+  const { generateMealPlan: initiateMealPlanGeneration, isGenerating } = useMealPlan(profile?.id);
   const [calculatedNutrition, setCalculatedNutrition] = useState<any>(null);
   
   // Expand app when component mounts and setup Telegram main button
@@ -97,9 +97,9 @@ export default function Home() {
       setCalculatedNutrition(nutrition);
       setShowSummary(true);
 
-      // Генерируем план питания, используя id сохранённого профиля
+      // Генерируем план питания после успешного сохранения профиля
       if (savedProfile?.id) {
-        generateMealPlan(savedProfile);
+        handleGenerateMealPlan(data);
       }
 
       // Показываем кнопку для отправки данных в Telegram
@@ -117,7 +117,33 @@ export default function Home() {
   };
   
   const handleViewMealPlan = () => {
-    setLocation('/meal-plan');
+    if (profile?.id) {
+      setLocation(`/meal-plan/${profile.id}`);
+    } else {
+      showAlert('Профиль не загружен. Пожалуйста, сохраните профиль сначала.');
+    }
+  };
+  
+  const handleGenerateMealPlan = async (profileData: Profile) => {
+    if (!profile?.id) {
+      showAlert('Ошибка: Идентификатор пользователя отсутствует.');
+      return;
+    }
+    
+    // Вызываем мутацию с добавленным onSuccess колбэком
+    initiateMealPlanGeneration(profileData, {
+      onSuccess: (data) => {
+        showAlert('План питания успешно сгенерирован!');
+        // Добавляем небольшую задержку перед перенаправлением
+        setTimeout(() => {
+          setLocation(`/meal-plan/${profile.id}`); // Перенаправляем пользователя на страницу плана питания
+        }, 500); // Задержка 500ms (полсекунды)
+      },
+      onError: (error) => {
+        showAlert(`Ошибка генерации плана питания: ${error.message}`);
+        console.error('Generation error:', error);
+      }
+    });
   };
   
   return (

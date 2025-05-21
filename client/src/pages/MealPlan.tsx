@@ -44,6 +44,8 @@ const MealPlanPage: React.FC = () => {
     isAddingToGroceryList: boolean;
   };
 
+  console.log('MealPlanPage State:', { mealPlan, isLoadingMealPlan, dailyMeals });
+
   const [availableDays, setAvailableDays] = useState<number[]>([1, 2, 3]);
 
   // Expand app when component mounts
@@ -153,10 +155,16 @@ const MealPlanPage: React.FC = () => {
 
   // Use actual data if available, otherwise use mock data
   let currentDayMeals: import("@/types").Meal[];
-  if (dailyMeals && Array.isArray(dailyMeals)) {
-    const found = dailyMeals.find((d) => d.day === activeDay);
+  if (dailyMeals && Array.isArray(dailyMeals) && dailyMeals.length > 0 && Array.isArray(dailyMeals[0])) {
+    // Если dailyMeals - это массив, содержащий вложенный массив блюд (как в текущем ответе сервера)
+    currentDayMeals = dailyMeals[0]; // Берем первый (и единственный) вложенный массив блюд
+  } else if (dailyMeals && Array.isArray(dailyMeals)) {
+    // Если dailyMeals - это просто массив блюд (предыдущий формат или если Spoonacular изменит формат)
+    // Находим блюда для активного дня (если структура вернется к объектам с полем day)
+    const found = dailyMeals.find((d: any) => d.day === activeDay); // Добавляем : any для избежания ошибки типизации при доступе к .day
     currentDayMeals = found ? found.meals : [];
   } else {
+    // Если данных нет, используем моковые данные
     currentDayMeals = mockMeals;
   }
   const currentNutrition = mealPlan?.dailyNutrition || mockDailyNutrition;
