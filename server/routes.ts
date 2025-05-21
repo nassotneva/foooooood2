@@ -254,6 +254,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Import meals route
+  app.get('/api/import-meals', async (req, res) => {
+    try {
+      const recipes = await SpoonacularService.fetchRandomRecipes();
+      
+      // Сохраняем каждый рецепт в базу данных
+      const savedMeals = await Promise.all(recipes.map(async (recipe) => {
+        // Создаем или находим продукты для каждого ингредиента
+        const ingredients = await Promise.all(recipe.extendedIngredients.map(async (ingredient) => {
+          // Ищем продукт по названию
+          const existingFoodItems = await storage.getAllFoodItems();
+          let foodItem = existingFoodItems.find(item => 
+            item.name.toLowerCase() === ingredient.nameClean.toLowerCase()
+          );
+
+          // Если продукт не найден, создаем новый
+          if (!foodItem) {
+            const newFoodItem = await storage.createFoodItem({
+              name: ingredient.nameClean,
+              category: 'other', // Можно улучшить категоризацию
+              calories: 0, // Нужно получить из API
+              protein: 0,
+              fat: 0,
+              carbs: 0,
+              pricePerUnit: 0,
+              unit: ingredient.unit,
+              quantity: 1
+            });
+            foodItem = newFoodItem;
+          }
+
+          return {
+            foodItemId: foodItem.id,
+            quantity: ingredient.amount,
+            unit: ingredient.unit
+          };
+        }));
+
+        // Создаем блюдо
+        const meal = await storage.createMeal({
+          userId: 1, // TODO: Получать из контекста пользователя
+          name: recipe.title,
+          type: recipe.dishTypes?.[0] || 'main', // Используем первый тип блюда или 'main' по умолчанию
+          day: 1, // TODO: Определять день
+          calories: recipe.nutrition.nutrients.find(n => n.name === 'Calories')?.amount || 0,
+          protein: recipe.nutrition.nutrients.find(n => n.name === 'Protein')?.amount || 0,
+          fat: recipe.nutrition.nutrients.find(n => n.name === 'Fat')?.amount || 0,
+          carbs: recipe.nutrition.nutrients.find(n => n.name === 'Carbohydrates')?.amount || 0,
+          recipe: recipe.instructions,
+          imageUrl: recipe.image,
+          ingredients
+        });
+
+        return meal;
+      }));
+
+      res.status(200).json({ 
+        message: 'Meals imported successfully', 
+        meals: savedMeals 
+      });
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
   // Store routes
   app.get('/api/stores', async (req, res) => {
     try {

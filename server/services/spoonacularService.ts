@@ -140,4 +140,14 @@ export class SpoonacularService {
     // Spoonacular meal planner returns an object with a 'meals' array and 'nutrients'
     return response as SpoonacularMealPlanResponse;
   }
+
+  static async fetchRandomRecipes(number: number = 5): Promise<SpoonacularRecipe[]> {
+    const response = await this.fetchFromAPI('/recipes/random', {
+      number: number.toString(),
+      addRecipeInformation: 'true',
+      fillIngredients: 'true',
+      instructionsRequired: 'true'
+    });
+    return response.recipes;
+  }
 } 

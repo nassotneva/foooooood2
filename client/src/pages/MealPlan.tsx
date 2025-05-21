@@ -115,10 +115,10 @@ export default function MealPlan() {
       price: 120,
       imageUrl: "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
       ingredients: [
-        { id: 1, name: "Овсяные хлопья", quantity: 50, unit: "г", price: 30 },
-        { id: 2, name: "Йогурт натуральный", quantity: 150, unit: "г", price: 45 },
-        { id: 3, name: "Ягоды (замороженные)", quantity: 50, unit: "г", price: 35 },
-        { id: 4, name: "Мед", quantity: 10, unit: "г", price: 10 },
+        { foodItemId: 1, quantity: 50, unit: "г" },
+        { foodItemId: 2, quantity: 150, unit: "г" },
+        { foodItemId: 3, quantity: 50, unit: "г" },
+        { foodItemId: 4, quantity: 10, unit: "г" }
       ],
       recipe: "1. Сварите овсянку на воде. 2. Добавьте ягоды и мед. 3. Полейте йогуртом.",
     },
@@ -134,11 +134,11 @@ export default function MealPlan() {
       price: 180,
       imageUrl: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
       ingredients: [
-        { id: 5, name: "Куриная грудка", quantity: 150, unit: "г", price: 75 },
-        { id: 6, name: "Листья салата", quantity: 50, unit: "г", price: 25 },
-        { id: 7, name: "Помидоры", quantity: 100, unit: "г", price: 30 },
-        { id: 8, name: "Огурцы", quantity: 100, unit: "г", price: 20 },
-        { id: 9, name: "Оливковое масло", quantity: 10, unit: "мл", price: 30 },
+        { foodItemId: 5, quantity: 150, unit: "г" },
+        { foodItemId: 6, quantity: 50, unit: "г" },
+        { foodItemId: 7, quantity: 100, unit: "г" },
+        { foodItemId: 8, quantity: 100, unit: "г" },
+        { foodItemId: 9, quantity: 10, unit: "мл" }
       ],
       recipe: "1. Отварите куриную грудку. 2. Нарежьте овощи. 3. Смешайте все ингредиенты и заправьте маслом.",
     }

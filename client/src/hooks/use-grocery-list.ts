@@ -26,10 +26,11 @@ export function useGroceryList(userId?: number) {
     mutate: updateGroceryItem,
     isPending: isUpdating,
   } = useMutation({
-    mutationFn: async ({ id, purchased }: { id: number; purchased: boolean }) => {
+    mutationFn: async ({ id, purchased, quantity }: { id: number; purchased?: boolean; quantity?: number }) => {
       try {
         const response = await apiRequest('PATCH', `/api/grocery-items/${id}`, {
-          purchased,
+          ...(purchased !== undefined && { purchased }),
+          ...(quantity !== undefined && { quantity }),
         });
         
         return response.json();

@@ -114,7 +114,11 @@ export interface Meal {
   carbs: number;
   price: number;
   imageUrl: string;
-  ingredients: Ingredient[];
+  ingredients: {
+    foodItemId: number;
+    quantity: number;
+    unit: string;
+  }[];
   recipe?: string;
 }
 

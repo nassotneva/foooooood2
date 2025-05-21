@@ -45,7 +45,11 @@ export const meals = pgTable("meals", {
   carbs: real("carbs").notNull(),
   recipe: text("recipe"),
   imageUrl: text("image_url"),
-  ingredients: json("ingredients").notNull(), // Array of ingredient IDs with quantities
+  ingredients: json("ingredients").notNull().$type<{
+    foodItemId: number;
+    quantity: number;
+    unit: string;
+  }[]>(), // Массив объектов с ID продукта и количеством
 });
 
 // Meal plans table

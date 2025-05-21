@@ -104,7 +104,7 @@ export const expandApp = () => {
   webApp?.expand();
 };
 
-export const sendDataToTelegram = (data: Record<string, any>, type: 'profile' | 'mealPlan' | 'groceries') => {
+export const sendDataToTelegram = (data: Record<string, any>, type: 'profile' | 'mealPlan' | 'groceries' | 'stores') => {
   if (!webApp) {
     console.warn("Telegram WebApp is not available, cannot send data");
     return false;

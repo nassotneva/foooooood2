@@ -52,7 +52,7 @@ export default function StoresMap() {
     showAlert(`Выбран магазин: ${store.name}`);
     
     // Дополнительно можно отправить данные о конкретном магазине в Telegram
-    sendDataToTelegram(store, 'selectedStore');
+    sendDataToTelegram(store, 'stores');
     hapticFeedback.impact('medium');
   };
 

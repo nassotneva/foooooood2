@@ -12,6 +12,18 @@ import { MapPin, Filter } from "lucide-react";
 import { useLocation } from "wouter";
 import { expandApp, sendDataToTelegram, showMainButton, hapticFeedback } from "@/lib/telegram";
 
+interface GroceryItemType {
+  id: number;
+  purchased: boolean;
+  foodItem: {
+    name: string;
+    unit: string;
+    pricePerUnit: number;
+    category: string;
+  };
+  quantity: number;
+}
+
 export default function GroceryList() {
   const [, setLocation] = useLocation();
   const { profile } = useProfile();
@@ -28,7 +40,20 @@ export default function GroceryList() {
     showFilter,
     setShowFilter,
     totals,
-  } = useGroceryList(profile?.id);
+  } = useGroceryList(profile?.id) as {
+    groceryItems: GroceryItemType[];
+    groupedGroceryItems: Record<string, GroceryItemType[]>;
+    isLoadingGroceryItems: boolean;
+    updateGroceryItem: (item: { id: number; purchased?: boolean; quantity?: number }) => void;
+    isUpdating: boolean;
+    searchTerm: string;
+    setSearchTerm: (term: string) => void;
+    selectedCategory: string | null;
+    setSelectedCategory: (category: string | null) => void;
+    showFilter: boolean;
+    setShowFilter: (show: boolean) => void;
+    totals: { totalCount: number; purchasedCount: number; totalCost: number };
+  };
 
   // Expand app when component mounts and setup Telegram functionality
   useEffect(() => {
@@ -78,13 +103,7 @@ export default function GroceryList() {
   };
 
   const handleUpdateQuantity = (id: number, quantity: number) => {
-    // This would ideally update quantity, but we'll just toggle purchased for now
-    // since the storage.ts doesn't have this functionality directly
-    const item = groceryItems.find((item: any) => item.id === id);
-    if (item) {
-      // For now we'll just toggle purchased status to show some interactivity
-      updateGroceryItem({ id, purchased: !item.purchased });
-    }
+    updateGroceryItem({ id, quantity });
   };
 
   const handleShowStoresMap = () => {
