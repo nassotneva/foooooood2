@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { BottomNavigation } from "@/components/layout/BottomNavigation";
 import { DailyNutritionSummary } from "@/components/meals/DailyNutritionSummary";
@@ -10,8 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { showAlert, sendDataToTelegram, showMainButton, hapticFeedback, expandApp } from "@/lib/telegram";
 import type { MealPlan, DailyMeals } from "@/types";
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
 
-export default function MealPlan() {
+const MealPlanPage: React.FC = () => {
+  const { userId: urlUserId } = useParams<{ userId: string }>();
+  
+  // Получаем userId из параметров URL или из Telegram WebApp
+  const userId = urlUserId ? parseInt(urlUserId) : (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || undefined);
+
   const { profile } = useProfile();
   const {
     mealPlan,
@@ -24,7 +31,7 @@ export default function MealPlan() {
     isLoadingMealPlan,
     isLoadingDailyMeals,
     isAddingToGroceryList,
-  } = useMealPlan(profile?.id) as {
+  } = useMealPlan(userId) as {
     mealPlan: MealPlan | undefined;
     dailyMeals: DailyMeals[] | undefined;
     activeDay: number;
@@ -301,3 +308,5 @@ export default function MealPlan() {
     </div>
   );
 }
+
+export default MealPlanPage;
